@@ -36,17 +36,6 @@ module.exports = {
   },
 
   /**
-   * file and dir watcher
-   * @member {Object} Plugin#watcher
-   * @property {Boolean} enable - `true` by default
-   * @since 1.0.0
-   */
-  watcher: {
-    enable: true,
-    package: 'egg-watcher',
-  },
-
-  /**
    * multipart
    * @member {Object} Plugin#multipart
    * @property {Boolean} enable - `true` by default
@@ -66,39 +55,6 @@ module.exports = {
   security: {
     enable: true,
     package: 'egg-security',
-  },
-
-  /**
-   * local development helper
-   * @member {Object} Plugin#development
-   * @property {Boolean} enable - `true` by default
-   * @since 1.0.0
-   */
-  development: {
-    enable: true,
-    package: 'egg-development',
-  },
-
-  /**
-   * logger file rotater
-   * @member {Object} Plugin#logrotator
-   * @property {Boolean} enable - `true` by default
-   * @since 1.0.0
-   */
-  logrotator: {
-    enable: true,
-    package: 'egg-logrotator',
-  },
-
-  /**
-   * schedule tasks
-   * @member {Object} Plugin#schedule
-   * @property {Boolean} enable - `true` by default
-   * @since 2.7.0
-   */
-  schedule: {
-    enable: true,
-    package: 'egg-schedule',
   },
 
   /**

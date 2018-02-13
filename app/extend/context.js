@@ -1,16 +1,9 @@
 'use strict';
 
 const delegate = require('delegates');
-const { assign } = require('utility');
-const eggUtils = require('egg-core').utils;
-
-const HELPER = Symbol('Context#helper');
-const LOCALS = Symbol('Context#locals');
-const LOCALS_LIST = Symbol('Context#localsList');
 const COOKIES = Symbol('Context#cookies');
 const CONTEXT_LOGGERS = Symbol('Context#logger');
-const CONTEXT_HTTPCLIENT = Symbol('Context#httpclient');
-
+const HELPER = Symbol('Context#helper');
 
 const proto = module.exports = {
   get cookies() {
@@ -18,30 +11,6 @@ const proto = module.exports = {
       this[COOKIES] = new this.app.ContextCookies(this, this.app.keys);
     }
     return this[COOKIES];
-  },
-
-  /**
-   * Get a wrapper httpclient instance contain ctx in the hold request process
-   *
-   * @return {ContextHttpClient} the wrapper httpclient instance
-   */
-  get httpclient() {
-    if (!this[CONTEXT_HTTPCLIENT]) {
-      this[CONTEXT_HTTPCLIENT] = new this.app.ContextHttpClient(this);
-    }
-    return this[CONTEXT_HTTPCLIENT];
-  },
-
-  /**
-   * Shortcut for httpclient.curl
-   *
-   * @method Context#curl
-   * @param {String|Object} url - request url address.
-   * @param {Object} [options] - options for request.
-   * @return {Object} see {@link ContextHttpClient#curl}
-   */
-  curl(url, options) {
-    return this.httpclient.curl(url, options);
   },
 
   /**
@@ -122,116 +91,15 @@ const proto = module.exports = {
   get coreLogger() {
     return this.getLogger('coreLogger');
   },
-
-  /**
-   * locals is an object for view, you can use `app.locals` and `ctx.locals` to set variables,
-   * which will be used as data when view is rendering.
-   * The difference between `app.locals` and `ctx.locals` is the context level, `app.locals` is global level, and `ctx.locals` is request level. when you get `ctx.locals`, it will merge `app.locals`.
-   *
-   * when you set locals, only object is available
-   *
-   * ```js
-   * this.locals = {
-   *   a: 1
-   * };
-   * this.locals = {
-   *   b: 1
-   * };
-   * this.locals.c = 1;
-   * console.log(this.locals);
-   * {
-   *   a: 1,
-   *   b: 1,
-   *   c: 1,
-   * };
-   * ```
-   *
-   * `ctx.locals` has cache, it only merges `app.locals` once in one request.
-   *
-   * @member {Object} Context#locals
-   */
-  get locals() {
-    if (!this[LOCALS]) {
-      this[LOCALS] = assign({}, this.app.locals);
-    }
-    if (this[LOCALS_LIST] && this[LOCALS_LIST].length) {
-      assign(this[LOCALS], this[LOCALS_LIST]);
-      this[LOCALS_LIST] = null;
-    }
-    return this[LOCALS];
-  },
-
-  set locals(val) {
-    if (!this[LOCALS_LIST]) {
-      this[LOCALS_LIST] = [];
-    }
-    this[LOCALS_LIST].push(val);
-  },
-
-  /**
-   * alias to {@link Context#locals}, compatible with koa that use this variable
-   * @member {Object} state
-   * @see Context#locals
-   */
-  get state() {
-    return this.locals;
-  },
-
-  set state(val) {
-    this.locals = val;
-  },
-
-  /**
-   * Run async function in the background
-   * @param {Function} scope - the first args is ctx
-   * ```js
-   * this.body = 'hi';
-   *
-   * this.runInBackground(async ctx => {
-   *   await ctx.mysql.query(sql);
-   *   await ctx.curl(url);
-   * });
-   * ```
-   */
-  runInBackground(scope) {
-    const ctx = this;
-    const start = Date.now();
-    /* istanbul ignore next */
-    const taskName = scope.name || scope._name || eggUtils.getCalleeFromStack(true);
-    // use app.toAsyncFunction to support both generator function and async function
-    ctx.app.toAsyncFunction(scope)(ctx)
-      .then(() => {
-        ctx.coreLogger.info('[egg:background] task:%s success (%dms)', taskName, Date.now() - start);
-      })
-      .catch(err => {
-        ctx.coreLogger.info('[egg:background] task:%s fail (%dms)', taskName, Date.now() - start);
-        ctx.coreLogger.error(err);
-      });
-  },
 };
 
 /**
  * Context delegation.
+ * 这里把request上的许多方法delegate到了context上面, 另外注意koa上原本有accept属性(必须)，
+ * 但是因为覆写了application里的createContext方法, 所以这里也要重新delegate下
  */
 
 delegate(proto, 'request')
-  /**
-   * @member {Boolean} Context#acceptJSON
-   * @see Request#acceptJSON
-   * @since 1.0.0
-   */
-  .getter('acceptJSON')
-  /**
-   * @member {Array} Context#queries
-   * @see Request#queries
-   * @since 1.0.0
-   */
-  .getter('queries')
-  /**
-   * @member {Boolean} Context#accept
-   * @see Request#accept
-   * @since 1.0.0
-   */
   .getter('accept')
   /**
    * @member {string} Context#ip
@@ -239,11 +107,3 @@ delegate(proto, 'request')
    * @since 1.0.0
    */
   .access('ip');
-
-delegate(proto, 'response')
-  /**
-   * @member {Number} Context#realStatus
-   * @see Response#realStatus
-   * @since 1.0.0
-   */
-  .access('realStatus');

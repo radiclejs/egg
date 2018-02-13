@@ -1,16 +1,13 @@
 'use strict';
 
-const querystring = require('querystring');
 const accepts = require('accepts');
 
-const _querycache = Symbol('_querycache');
-const _queriesCache = Symbol('_queriesCache');
 const PROTOCOL = Symbol('PROTOCOL');
 const HOST = Symbol('HOST');
 const ACCEPTS = Symbol('ACCEPTS');
 const IPS = Symbol('IPS');
-const RE_ARRAY_KEY = /[^\[\]]+\[\]$/;
 
+// 注意这里覆写/新增了koa上的方法和属性, 在context有把这些方法和属性代理到context上去
 module.exports = {
   /**
    * Parse the "Host" header field host
@@ -123,104 +120,6 @@ module.exports = {
     this._ip = ip;
   },
 
-  /**
-   * detect if response should be json
-   * 1. url path ends with `.json`
-   * 2. response type is set to json
-   * 3. detect by request accept header
-   *
-   * @member {Boolean} Request#acceptJSON
-   * @since 1.0.0
-   */
-  get acceptJSON() {
-    if (this.path.endsWith('.json')) return true;
-    if (this.response.type && this.response.type.indexOf('json') >= 0) return true;
-    if (this.accepts('html', 'text', 'json') === 'json') return true;
-    return false;
-  },
-
-  // How to read query safely
-  // https://github.com/koajs/qs/issues/5
-  _customQuery(cacheName, filter) {
-    const str = this.querystring;
-    if (!str) {
-      return {};
-    }
-
-    let c = this[cacheName];
-    if (!c) {
-      c = this[cacheName] = {};
-    }
-    let cacheQuery = c[str];
-    if (!cacheQuery) {
-      cacheQuery = c[str] = {};
-      const isQueries = cacheName === _queriesCache;
-      // `querystring.parse` CANNOT parse something like `a[foo]=1&a[bar]=2`
-      const query = querystring.parse(str);
-      for (const key in query) {
-        if (!key) {
-          // key is '', like `a=b&`
-          continue;
-        }
-        const value = filter(query[key]);
-        cacheQuery[key] = value;
-        if (isQueries && RE_ARRAY_KEY.test(key)) {
-          // `this.queries['key'] => this.queries['key[]']` is compatibly supported
-          const subkey = key.substring(0, key.length - 2);
-
-          if (!cacheQuery[subkey]) {
-            cacheQuery[subkey] = value;
-          }
-        }
-      }
-    }
-    return cacheQuery;
-  },
-
-  /**
-   * get params pass by querystring, all value are String type.
-   * @member {Object} Request#query
-   * @example
-   * ```js
-   * GET http://127.0.0.1:7001?name=Foo&age=20&age=21
-   * this.query
-   * => { 'name': 'Foo', 'age': 20 }
-   *
-   * GET http://127.0.0.1:7001?a=b&a=c&o[foo]=bar&b[]=1&b[]=2&e=val
-   * this.query
-   * =>
-   * {
-   *   "a": "b",
-   *   "o[foo]": "bar",
-   *   "b[]": "1",
-   *   "e": "val"
-   * }
-   * ```
-   */
-  get query() {
-    return this._customQuery(_querycache, firstValue);
-  },
-
-  /**
-   * get params pass by querystring, all value are Array type. {@link Request#query}
-   * @member {Array} Request#queries
-   * @example
-   * ```js
-   * GET http://127.0.0.1:7001?a=b&a=c&o[foo]=bar&b[]=1&b[]=2&e=val
-   * this.queries
-   * =>
-   * {
-   *   "a": ["b", "c"],
-   *   "o[foo]": ["bar"],
-   *   "b[]": ["1", "2"],
-   *   "e": ["val"]
-   * }
-   * ```
-   */
-  get queries() {
-    return this._customQuery(_queriesCache, arrayValue);
-  },
-
   get accept() {
     let accept = this[ACCEPTS];
     if (accept) {
@@ -229,34 +128,7 @@ module.exports = {
     accept = this[ACCEPTS] = accepts(this.req);
     return accept;
   },
-
-  /**
-   * Set query-string as an object.
-   *
-   * @method Request#query
-   * @param {Object} obj set querystring and query object for request.
-   * @return {void}
-   * @api public
-   */
-  set query(obj) {
-    this.querystring = querystring.stringify(obj);
-  },
 };
-
-
-function firstValue(value) {
-  if (Array.isArray(value)) {
-    value = value[0];
-  }
-  return value;
-}
-
-function arrayValue(value) {
-  if (!Array.isArray(value)) {
-    value = [ value ];
-  }
-  return value;
-}
 
 function getFromHeaders(ctx, names) {
   if (!names) return '';

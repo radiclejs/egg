@@ -1,6 +1,6 @@
 'use strict';
 
-const fs = require('fs');
+// const fs = require('fs');
 const path = require('path');
 
 /**
@@ -99,30 +99,6 @@ module.exports = appInfo => {
     HOME: appInfo.HOME,
 
     /**
-     * The directory of server running. You can find `application_config.json` under it that is dumpped from `app.config`.
-     * @member {String} Config#rundir
-     * @default
-     * @since 1.0.0
-     */
-    rundir: path.join(appInfo.baseDir, 'run'),
-
-    /**
-     * dump config
-     *
-     * It will ignore special keys when dumpConfig
-     *
-     * @member Config#dump
-     * @property {Set} ignore - keys to ignore
-     */
-    dump: {
-      ignore: new Set([
-        'pass', 'pwd', 'passd', 'passwd', 'password', 'keys', 'masterKey', 'accessKey',
-        // ignore any key contains "secret" keyword
-        /secret/i,
-      ]),
-    },
-
-    /**
      * configurations are confused to users
      * {
      *   [unexpectedKey]: [expectedKey],
@@ -132,40 +108,9 @@ module.exports = appInfo => {
      */
     confusedConfigurations: {
       bodyparser: 'bodyParser',
-      notFound: 'notfound',
-      sitefile: 'siteFile',
       middlewares: 'middleware',
       httpClient: 'httpclient',
     },
-  };
-
-  /**
-   * The option of `notfound` middleware
-   *
-   * It will return page or json depend on negotiation when 404,
-   * If pageUrl is set, it will redirect to the page.
-   *
-   * @member Config#notfound
-   * @property {String} pageUrl - the 404 page url
-   */
-  config.notfound = {
-    pageUrl: '',
-  };
-
-  /**
-   * The option of `siteFile` middleware
-   *
-   * You can map some files using this options, it will response immdiately when matching.
-   *
-   * @member {Object} Config#siteFile - key is path, and value is url or buffer.
-   * @example
-   * // specific app's favicon, => '/favicon.ico': 'https://eggjs.org/favicon.ico',
-   * config.siteFile = {
-   *   '/favicon.ico': 'https://eggjs.org/favicon.ico',
-   * };
-   */
-  config.siteFile = {
-    '/favicon.ico': fs.readFileSync(path.join(__dirname, 'favicon.png')),
   };
 
   /**
@@ -286,10 +231,7 @@ module.exports = appInfo => {
    */
   config.coreMiddleware = [
     'meta',
-    'siteFile',
-    'notfound',
     'bodyParser',
-    'overrideMethod',
   ];
 
   /**
@@ -297,29 +239,6 @@ module.exports = appInfo => {
    * @member {Number} Config.workerStartTimeout
    */
   config.workerStartTimeout = 10 * 60 * 1000;
-
-  /**
-   *
-   * @member {Object} Config#cluster
-   * @property {Object} listen - listen options, see {@link https://nodejs.org/api/http.html#http_server_listen_port_hostname_backlog_callback}
-   * @property {String} listen.path - set a unix sock path when server listen
-   * @property {Number} listen.port - set a port when server listen
-   * @property {String} listen.hostname - set a hostname binding server when server listen
-   */
-  config.cluster = {
-    listen: {
-      path: '',
-      port: 7001,
-      hostname: '',
-    },
-  };
-
-  /**
-   * @property {Number} responseTimeout - response timeout, default is 60000
-   */
-  config.clusterClient = {
-    responseTimeout: 60000,
-  };
 
   return config;
 };
